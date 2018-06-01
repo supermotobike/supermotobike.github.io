@@ -1,259 +1,126 @@
-(function($) {
-
-	skel.breakpoints({
-		xlarge:	'(max-width: 1680px)',
-		large:	'(max-width: 1280px)',
-		medium:	'(max-width: 980px)',
-		small:	'(max-width: 736px)',
-		xsmall:	'(max-width: 480px)',
-		xxsmall: '(max-width: 360px)'
-	});
-
-	/**
-	 * Applies parallax scrolling to an element's background image.
-	 * @return {jQuery} jQuery object.
-	 */
-	$.fn._parallax = function(intensity) {
-
-		var	$window = $(window),
-			$this = $(this);
-
-		if (this.length == 0 || intensity === 0)
-			return $this;
-
-		if (this.length > 1) {
-
-			for (var i=0; i < this.length; i++)
-				$(this[i])._parallax(intensity);
-
-			return $this;
-
-		}
-
-		if (!intensity)
-			intensity = 0.25;
-
-		$this.each(function() {
-
-			var $t = $(this),
-				$bg = $('<div class="bg"></div>').appendTo($t),
-				on, off;
-
-			on = function() {
-
-				$bg
-					.removeClass('fixed')
-					.css('transform', 'none');
-
-				$window
-					.on('scroll._parallax', function() {
-
-						$bg.css('transform', 'none');
-
-					});
-			};
-
-			off = function() {
-
-				$bg
-					.addClass('fixed')
-					.css('transform', 'none');
-
-				$window
-					.off('scroll._parallax');
-
-			};
-
-			// Disable parallax on ..
-				if (skel.vars.browser == 'ie'		// IE
-				||	skel.vars.browser == 'edge'		// Edge
-				||	window.devicePixelRatio > 1		// Retina/HiDPI (= poor performance)
-				||	skel.vars.mobile)				// Mobile devices
-					off();
-
-			// Enable everywhere else.
-				else {
-
-					skel.on('!large -large', on);
-					skel.on('+large', off);
-
-				}
-
-		});
-
-		$window
-			.off('load._parallax resize._parallax')
-			.on('load._parallax resize._parallax', function() {
-				$window.trigger('scroll');
-			});
-
-		return $(this);
-
-	};
-
-	$(function() {
-
-		var	$window = $(window),
-			$body = $('body'),
-			$wrapper = $('#wrapper'),
-			$header = $('#header'),
-			$nav = $('#nav'),
-			$main = $('#main'),
-			$navPanelToggle, $navPanel, $navPanelInner;
-
-		// Disable animations/transitions until the page has loaded.
-			$window.on('load', function() {
-				window.setTimeout(function() {
-					$body.removeClass('is-loading');
-				}, 100);
-			});
-
-		// Prioritize "important" elements on medium.
-			skel.on('+medium -medium', function() {
-				$.prioritize(
-					'.important\\28 medium\\29',
-					skel.breakpoint('medium').active
-				);
-			});
-
-		// Scrolly.
-			$('.scrolly').scrolly();
-
-		// Background.
-			$wrapper._parallax(0.925);
-
-		// Nav Panel.
-
-			// Toggle.
-				$navPanelToggle = $(
-					'<a href="#navPanel" id="navPanelToggle">Menu</a>'
-				)
-					.appendTo($wrapper);
-
-				// Change toggle styling once we've scrolled past the header.
-					$header.scrollex({
-						bottom: '5vh',
-						enter: function() {
-							$navPanelToggle.removeClass('alt');
-						},
-						leave: function() {
-							$navPanelToggle.addClass('alt');
-						}
-					});
-
-			// Panel.
-				$navPanel = $(
-					'<div id="navPanel">' +
-						'<nav>' +
-						'</nav>' +
-						'<a href="#navPanel" class="close"></a>' +
-					'</div>'
-				)
-					.appendTo($body)
-					.panel({
-						delay: 500,
-						hideOnClick: true,
-						hideOnSwipe: true,
-						resetScroll: true,
-						resetForms: true,
-						side: 'right',
-						target: $body,
-						visibleClass: 'is-navPanel-visible'
-					});
-
-				// Get inner.
-					$navPanelInner = $navPanel.children('nav');
-
-				// Move nav content on breakpoint change.
-					var $navContent = $nav.children();
-
-					skel.on('!medium -medium', function() {
-
-						// NavPanel -> Nav.
-							$navContent.appendTo($nav);
-
-						// Flip icon classes.
-							$nav.find('.icons, .icon')
-								.removeClass('alt');
-
-					});
-
-					skel.on('+medium', function() {
-
-						// Nav -> NavPanel.
-						$navContent.appendTo($navPanelInner);
-
-						// Flip icon classes.
-							$navPanelInner.find('.icons, .icon')
-								.addClass('alt');
-
-					});
-
-				// Hack: Disable transitions on WP.
-					if (skel.vars.os == 'wp'
-					&&	skel.vars.osVersion < 10)
-						$navPanel
-							.css('transition', 'none');
-
-		// Intro.
-			var $intro = $('#intro');
-
-			if ($intro.length > 0) {
-
-				// Hack: Fix flex min-height on IE.
-					if (skel.vars.browser == 'ie') {
-						$window.on('resize.ie-intro-fix', function() {
-
-							var h = $intro.height();
-
-							if (h > $window.height())
-								$intro.css('height', 'auto');
-							else
-								$intro.css('height', h);
-
-						}).trigger('resize.ie-intro-fix');
-					}
-
-				// Hide intro on scroll (> small).
-					skel.on('!small -small', function() {
-
-						$main.unscrollex();
-
-						$main.scrollex({
-							mode: 'bottom',
-							top: '25vh',
-							bottom: '-50vh',
-							enter: function() {
-								$intro.addClass('hidden');
-							},
-							leave: function() {
-								$intro.removeClass('hidden');
-							}
-						});
-
-					});
-
-				// Hide intro on scroll (<= small).
-					skel.on('+small', function() {
-
-						$main.unscrollex();
-
-						$main.scrollex({
-							mode: 'middle',
-							top: '15vh',
-							bottom: '-15vh',
-							enter: function() {
-								$intro.addClass('hidden');
-							},
-							leave: function() {
-								$intro.removeClass('hidden');
-							}
-						});
-
-				});
-
-			}
-
-	});
+(function($){
+    // Caption
+    $('.article-entry').each(function(i) {
+        $(this).find('img').filter(function (element) {
+            return $(this).hasClass('');
+        }).each(function() {
+            // add image caption
+            if (this.alt && !(!!$.prototype.justifiedGallery && $(this).parent('.justified-gallery').length)) {
+                $(this).after('<span class="caption">' + this.alt + '</span>');
+            }
+
+            if ($(this).parent().prop("tagName") !== 'A') {
+                $(this).wrap('<a href="' + ($(this).attr("data-imgbig") ? $(this).attr("data-imgbig") : this.src) + '" title="' + this.alt + '" class="gallery-item"></a>');
+            }
+        });
+    });
+    if (typeof lightGallery != 'undefined') {
+        var options = {
+            selector: '.gallery-item'
+        };
+        $('.article-entry').each(function(i, entry) {
+            lightGallery(entry, options);
+        });
+        lightGallery($('.article-gallery')[0], options);
+    }
+    if (!!$.prototype.justifiedGallery) {  // if justifiedGallery method is defined
+        var options = {
+            rowHeight: 140,
+            margins: 4,
+            lastRow: 'justify'
+        };
+        $('.justified-gallery').justifiedGallery(options);
+    }
+
+    // Profile card
+    var profileElem = $('#profile');
+    $(document).on('click', function () {
+        profileElem.removeClass('card');
+    }).on('click', '#profile-anchor', function (e) {
+        e.stopPropagation();
+        profileElem.toggleClass('card');
+    }).on('click', '.profile-inner', function (e) {
+        e.stopPropagation();
+    });
+
+    // To Top
+    var sidebarElem = $('#sidebar'),
+        toTopElem = $('#toTop');
+
+    (function () {
+        if (!sidebarElem.length) return;
+
+        checkDisplayToTop();
+        $(document).on('scroll', function () {
+            checkDisplayToTop();
+        });
+
+        toTopElem.click(function () {
+            $('body, html').animate({ scrollTop: 0 }, 600);
+        });
+
+        var isToTopDisplayed = false;
+        function checkDisplayToTop() {
+            var toTop = (sidebarElem.height() - $(window).height()) + 60;
+            var currentScrollTop = $(document).scrollTop();
+            var needDisplay = (currentScrollTop > toTop) && (currentScrollTop > 0);
+
+            if ($(document).width() >= 800) {
+                if (needDisplay) {
+                    if (isToTopDisplayed) return;
+                    toTopElem.fadeIn();
+                    toTopElem.css('left', sidebarElem.offset().left);
+                    isToTopDisplayed = true;
+                } else {
+                    if (!isToTopDisplayed) return;
+                    toTopElem.fadeOut();
+                    isToTopDisplayed = false;
+                }
+            } else {
+                toTopElem.show();
+                toTopElem.css('right', 20);
+            }
+        }
+    })();
+
+    // Fixed Profile
+    (function () {
+        checkFixedProfile();
+        $(document).on('scroll', function () {
+            checkFixedProfile();
+        });
+
+        var isFixedProfile = false;
+        function checkFixedProfile() {
+            if (!profileElem.is('.profile-fixed')) return;
+            if ($(document).width() < 800) return;
+
+            var currentScrollTop = $(document).scrollTop();
+            var profileInnerElem = $('#profile .profile-inner');
+            var needFixed = currentScrollTop >= profileElem.offset().top + profileElem.outerHeight(true);
+
+            if (needFixed) {
+                if (isFixedProfile) return;
+
+                profileInnerElem.css('position', 'fixed')
+                    .css('width', profileElem.innerWidth() + 'px')
+                    .css('top', '0');
+
+                // css animation fade-in
+                profileInnerElem.css('animation', '');
+                profileInnerElem.addClass('anim-fade-in');
+                isFixedProfile = true;
+            } else {
+                if (!isFixedProfile) return;
+
+                profileInnerElem.css('position', '')
+                    .css('width', '')
+                    .css('top', '');
+
+                profileInnerElem.css('animation', 'none');
+                isFixedProfile = false;
+            }
+        }
+    })();
 
 })(jQuery);
